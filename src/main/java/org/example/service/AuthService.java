@@ -221,6 +221,40 @@ public class AuthService {
                 .orElse(null);
     }
 
+    public Map<String, Object> getCurrentUserInfo(Long customerId) {
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            Optional<Customer> customerOpt = customerService.getCustomerById(customerId);
+            if (customerOpt.isEmpty()) {
+                response.put("success", false);
+                response.put("message", "Користувач не знайдений");
+                return response;
+            }
+            
+            Customer customer = customerOpt.get();
+            
+            response.put("success", true);
+            response.put("balance", customer.getMoney());
+            response.put("discount", customer.getIndividualDiscount());
+            
+            if (customer instanceof RegularCustomer) {
+                RegularCustomer regularCustomer = (RegularCustomer) customer;
+                response.put("totalPurchases", regularCustomer.getTotalPurchasesAmount());
+                response.put("customerType", "RegularCustomer");
+            } else {
+                response.put("totalPurchases", 0.0);
+                response.put("customerType", "Customer");
+            }
+            
+            return response;
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("message", "Помилка отримання інформації: " + e.getMessage());
+            return response;
+        }
+    }
+
     private Map<String, Object> createUserResponse(User user, RegularCustomer customer) {
         Map<String, Object> userResponse = new HashMap<>();
         userResponse.put("id", user.getId());

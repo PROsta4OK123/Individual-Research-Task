@@ -112,6 +112,20 @@ button:hover {
     background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
 }
 
+.danger-btn {
+    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+    color: white;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.danger-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(220, 53, 69, 0.4);
+}
+
 /* Результати */
 .result {
     margin-top: 20px;

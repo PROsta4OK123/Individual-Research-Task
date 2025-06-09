@@ -376,4 +376,215 @@ function cancelProductEdit() {
     document.getElementById('editProductForm').classList.add('hidden');
     document.getElementById('editProductSelect').value = '';
     editingProduct = null;
+}
+
+function clearForm(formId) {
+    const form = document.getElementById(formId);
+    const inputs = form.querySelectorAll('input, select, textarea');
+    inputs.forEach(input => input.value = '');
+}
+
+// === УПРАВЛІННЯ КОРИСТУВАЧАМИ ===
+
+function loadAllUsers() {
+    if (!currentUser || currentUser.role !== 'ADMIN') {
+        showResult('❌ Немає прав адміністратора', 'error', 'admin');
+        return;
+    }
+
+    fetch(`${API_BASE}/admin/users?adminId=${currentUser.id}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                populateUserSelect(data.users);
+                showResult(`✅ Завантажено ${data.totalUsers} користувачів`, 'success', 'admin');
+            } else {
+                showResult('❌ ' + data.message, 'error', 'admin');
+            }
+        })
+        .catch(error => showResult('❌ Помилка завантаження користувачів: ' + error.message, 'error', 'admin'));
+}
+
+function populateUserSelect(users) {
+    const select = document.getElementById('userSelect');
+    select.innerHTML = '<option value="">Оберіть користувача...</option>';
+    
+    users.forEach(user => {
+        const option = document.createElement('option');
+        option.value = user.id;
+        option.textContent = `${user.username} (${user.email}) - ${user.role}`;
+        if (user.balance !== undefined) {
+            option.textContent += ` - Баланс: ${user.balance.toFixed(2)}₴`;
+        }
+        select.appendChild(option);
+    });
+}
+
+function loadUserForEdit() {
+    const userId = document.getElementById('userSelect').value;
+    if (!userId) {
+        document.getElementById('editUserForm').classList.add('hidden');
+        return;
+    }
+
+    if (!currentUser || currentUser.role !== 'ADMIN') {
+        showResult('❌ Немає прав адміністратора', 'error', 'admin');
+        return;
+    }
+
+    fetch(`${API_BASE}/admin/users/${userId}?adminId=${currentUser.id}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                populateUserEditForm(data.user);
+                document.getElementById('editUserForm').classList.remove('hidden');
+            } else {
+                showResult('❌ ' + data.message, 'error', 'admin');
+            }
+        })
+        .catch(error => showResult('❌ Помилка завантаження користувача: ' + error.message, 'error', 'admin'));
+}
+
+function populateUserEditForm(user) {
+    document.getElementById('editUserTitle').textContent = `Редагування: ${user.username}`;
+    document.getElementById('editUserUsername').value = user.username;
+    document.getElementById('editUserEmail').value = user.email;
+    document.getElementById('editUserRole').value = user.role;
+    document.getElementById('editUserActive').checked = user.isActive;
+    
+    // Заповнюємо фінансові дані
+    document.getElementById('editUserBalance').value = user.balance !== undefined ? user.balance.toFixed(2) : '0.00';
+    document.getElementById('editUserTotalPurchases').value = user.totalPurchases !== undefined ? user.totalPurchases.toFixed(2) : '0.00';
+    document.getElementById('editUserFullName').value = user.fullName || '';
+}
+
+function saveUserChanges() {
+    const userId = document.getElementById('userSelect').value;
+    if (!userId) {
+        showResult('❌ Користувач не обраний', 'error', 'admin');
+        return;
+    }
+
+    if (!currentUser || currentUser.role !== 'ADMIN') {
+        showResult('❌ Немає прав адміністратора', 'error', 'admin');
+        return;
+    }
+
+    const updates = {
+        role: document.getElementById('editUserRole').value,
+        isActive: document.getElementById('editUserActive').checked,
+        balance: parseFloat(document.getElementById('editUserBalance').value),
+        totalPurchases: parseFloat(document.getElementById('editUserTotalPurchases').value),
+        fullName: document.getElementById('editUserFullName').value
+    };
+
+    fetch(`${API_BASE}/admin/users/${userId}?adminId=${currentUser.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showResult('✅ Дані користувача успішно оновлено!', 'success', 'admin');
+            loadAllUsers(); // Оновити список користувачів
+        } else {
+            showResult('❌ ' + data.message, 'error', 'admin');
+        }
+    })
+    .catch(error => showResult('❌ Помилка оновлення користувача: ' + error.message, 'error', 'admin'));
+}
+
+function cancelUserEdit() {
+    document.getElementById('editUserForm').classList.add('hidden');
+    document.getElementById('userSelect').value = '';
+}
+
+function resetUserPassword() {
+    const userId = document.getElementById('userSelect').value;
+    if (!userId) {
+        showResult('❌ Користувач не обраний', 'error', 'admin');
+        return;
+    }
+
+    if (!currentUser || currentUser.role !== 'ADMIN') {
+        showResult('❌ Немає прав адміністратора', 'error', 'admin');
+        return;
+    }
+
+    if (!confirm('⚠️ Ви впевнені, що хочете скинути пароль користувача?\nНовий пароль буде: password123')) {
+        return;
+    }
+
+    fetch(`${API_BASE}/admin/users/${userId}/reset-password?adminId=${currentUser.id}`, {
+        method: 'POST'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showResult(`✅ Пароль скинуто! Новий пароль: ${data.newPassword}`, 'success', 'admin', 10000);
+        } else {
+            showResult('❌ ' + data.message, 'error', 'admin');
+        }
+    })
+    .catch(error => showResult('❌ Помилка скидання пароля: ' + error.message, 'error', 'admin'));
+}
+
+function loadUserStats() {
+    if (!currentUser || currentUser.role !== 'ADMIN') {
+        showResult('❌ Немає прав адміністратора', 'error', 'admin');
+        return;
+    }
+
+    fetch(`${API_BASE}/admin/users/stats?adminId=${currentUser.id}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                displayUserStats(data.stats);
+            } else {
+                showResult('❌ ' + data.message, 'error', 'admin');
+            }
+        })
+        .catch(error => showResult('❌ Помилка завантаження статистики: ' + error.message, 'error', 'admin'));
+}
+
+function displayUserStats(stats) {
+    const statsHtml = `
+        <div class="stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; margin-top: 20px;">
+            <div class="stat-card" style="background: #f8f9fa; padding: 20px; border-radius: 10px; text-align: center;">
+                <h4 style="color: #667eea; margin: 0 0 10px 0;">👥 Загальна кількість</h4>
+                <div style="font-size: 24px; font-weight: bold; color: #333;">${stats.totalUsers}</div>
+                <div style="color: #6c757d;">користувачів</div>
+            </div>
+            <div class="stat-card" style="background: #d4edda; padding: 20px; border-radius: 10px; text-align: center;">
+                <h4 style="color: #28a745; margin: 0 0 10px 0;">✅ Активні</h4>
+                <div style="font-size: 24px; font-weight: bold; color: #155724;">${stats.activeUsers}</div>
+                <div style="color: #155724;">активних користувачів</div>
+            </div>
+            <div class="stat-card" style="background: #fff3cd; padding: 20px; border-radius: 10px; text-align: center;">
+                <h4 style="color: #856404; margin: 0 0 10px 0;">👨‍💼 Адміністратори</h4>
+                <div style="font-size: 24px; font-weight: bold; color: #856404;">${stats.adminUsers}</div>
+                <div style="color: #856404;">адмінів</div>
+            </div>
+            <div class="stat-card" style="background: #cce7ff; padding: 20px; border-radius: 10px; text-align: center;">
+                <h4 style="color: #004085; margin: 0 0 10px 0;">👤 Користувачі</h4>
+                <div style="font-size: 24px; font-weight: bold; color: #004085;">${stats.regularUsers}</div>
+                <div style="color: #004085;">звичайних користувачів</div>
+            </div>
+            ${stats.totalBalance !== undefined ? `
+            <div class="stat-card" style="background: #d1ecf1; padding: 20px; border-radius: 10px; text-align: center;">
+                <h4 style="color: #0c5460; margin: 0 0 10px 0;">💰 Загальний баланс</h4>
+                <div style="font-size: 24px; font-weight: bold; color: #0c5460;">${stats.totalBalance.toFixed(2)}₴</div>
+                <div style="color: #0c5460;">всіх користувачів</div>
+            </div>
+            <div class="stat-card" style="background: #f8d7da; padding: 20px; border-radius: 10px; text-align: center;">
+                <h4 style="color: #721c24; margin: 0 0 10px 0;">🛒 Загальні покупки</h4>
+                <div style="font-size: 24px; font-weight: bold; color: #721c24;">${stats.totalPurchases.toFixed(2)}₴</div>
+                <div style="color: #721c24;">всіх покупок</div>
+            </div>
+            ` : ''}
+        </div>
+    `;
+    
+    document.getElementById('userStatsResult').innerHTML = statsHtml;
 } 

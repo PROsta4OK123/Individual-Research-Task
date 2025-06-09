@@ -2,8 +2,13 @@ package org.example.service;
 
 import org.example.entity.Admin;
 import org.example.entity.Product;
+import org.example.entity.User;
+import org.example.entity.Customer;
+import org.example.entity.RegularCustomer;
 import org.example.repository.AdminRepository;
+import org.example.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,6 +28,15 @@ public class AdminService {
 
     @Autowired
     private AdminRepository adminRepository;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private CustomerService customerService;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     @Transactional
     public Map<String, Object> updateProductQuantity(Long adminId, Long productId, int newQuantity) {
@@ -307,5 +321,287 @@ public class AdminService {
         stats.put("lowStock", products.stream().filter(p -> p.getQuantity() > 0 && p.getQuantity() < 10).count());
 
         return stats;
+    }
+
+    // === УПРАВЛІННЯ КОРИСТУВАЧАМИ ===
+
+    public Map<String, Object> getAllUsers(Long adminId) {
+        Map<String, Object> response = new HashMap<>();
+
+        // Перевіряємо права адміністратора
+        Optional<Admin> adminOpt = adminRepository.findById(adminId);
+        if (adminOpt.isEmpty()) {
+            response.put("success", false);
+            response.put("message", "Адміністратор не знайдений");
+            return response;
+        }
+
+        Admin admin = adminOpt.get();
+        if (!admin.hasPermission("MANAGE_USERS")) {
+            response.put("success", false);
+            response.put("message", "Немає прав на управління користувачами");
+            return response;
+        }
+
+        try {
+            List<User> users = userRepository.findAll();
+            List<Map<String, Object>> userList = new ArrayList<>();
+
+            for (User user : users) {
+                Map<String, Object> userInfo = new HashMap<>();
+                userInfo.put("id", user.getId());
+                userInfo.put("username", user.getUsername());
+                userInfo.put("email", user.getEmail());
+                userInfo.put("role", user.getRole().toString());
+                userInfo.put("isActive", user.isActive());
+                userInfo.put("createdAt", user.getCreatedAt());
+                
+                // Шукаємо відповідного покупця
+                RegularCustomer customer = findCustomerByUserId(user.getId());
+                if (customer != null) {
+                    userInfo.put("customerId", customer.getId());
+                    userInfo.put("balance", customer.getMoney());
+                    userInfo.put("discount", customer.getIndividualDiscount());
+                    userInfo.put("totalPurchases", customer.getTotalPurchasesAmount());
+                    userInfo.put("fullName", customer.getFullName());
+                }
+                
+                userList.add(userInfo);
+            }
+
+            response.put("success", true);
+            response.put("users", userList);
+            response.put("totalUsers", users.size());
+            
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("message", "Помилка отримання користувачів: " + e.getMessage());
+        }
+
+        return response;
+    }
+
+    public Map<String, Object> getUserDetails(Long adminId, Long userId) {
+        Map<String, Object> response = new HashMap<>();
+
+        // Перевіряємо права адміністратора
+        Optional<Admin> adminOpt = adminRepository.findById(adminId);
+        if (adminOpt.isEmpty()) {
+            response.put("success", false);
+            response.put("message", "Адміністратор не знайдений");
+            return response;
+        }
+
+        Admin admin = adminOpt.get();
+        if (!admin.hasPermission("MANAGE_USERS")) {
+            response.put("success", false);
+            response.put("message", "Немає прав на управління користувачами");
+            return response;
+        }
+
+        try {
+            Optional<User> userOpt = userRepository.findById(userId);
+            if (userOpt.isEmpty()) {
+                response.put("success", false);
+                response.put("message", "Користувач не знайдений");
+                return response;
+            }
+
+            User user = userOpt.get();
+            Map<String, Object> userInfo = new HashMap<>();
+            userInfo.put("id", user.getId());
+            userInfo.put("username", user.getUsername());
+            userInfo.put("email", user.getEmail());
+            userInfo.put("role", user.getRole().toString());
+            userInfo.put("isActive", user.isActive());
+            userInfo.put("createdAt", user.getCreatedAt());
+
+            // Шукаємо відповідного покупця
+            RegularCustomer customer = findCustomerByUserId(user.getId());
+            if (customer != null) {
+                userInfo.put("customerId", customer.getId());
+                userInfo.put("balance", customer.getMoney());
+                userInfo.put("discount", customer.getIndividualDiscount());
+                userInfo.put("totalPurchases", customer.getTotalPurchasesAmount());
+                userInfo.put("fullName", customer.getFullName());
+            }
+
+            response.put("success", true);
+            response.put("user", userInfo);
+            
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("message", "Помилка отримання деталей користувача: " + e.getMessage());
+        }
+
+        return response;
+    }
+
+    @Transactional
+    public Map<String, Object> updateUser(Long adminId, Long userId, Map<String, Object> updates) {
+        Map<String, Object> response = new HashMap<>();
+
+        // Перевіряємо права адміністратора
+        Optional<Admin> adminOpt = adminRepository.findById(adminId);
+        if (adminOpt.isEmpty()) {
+            response.put("success", false);
+            response.put("message", "Адміністратор не знайдений");
+            return response;
+        }
+
+        Admin admin = adminOpt.get();
+        if (!admin.hasPermission("MANAGE_USERS")) {
+            response.put("success", false);
+            response.put("message", "Немає прав на управління користувачами");
+            return response;
+        }
+
+        try {
+            Optional<User> userOpt = userRepository.findById(userId);
+            if (userOpt.isEmpty()) {
+                response.put("success", false);
+                response.put("message", "Користувач не знайдений");
+                return response;
+            }
+
+            User user = userOpt.get();
+            
+            // Оновлюємо дані користувача
+            if (updates.containsKey("role")) {
+                String roleStr = (String) updates.get("role");
+                user.setRole(User.Role.valueOf(roleStr));
+            }
+            if (updates.containsKey("isActive")) {
+                user.setActive((Boolean) updates.get("isActive"));
+            }
+
+            userRepository.save(user);
+
+            // Оновлюємо дані покупця, якщо є
+            RegularCustomer customer = findCustomerByUserId(user.getId());
+            if (customer != null) {
+                if (updates.containsKey("balance")) {
+                    double balance = ((Number) updates.get("balance")).doubleValue();
+                    customer.setMoney(balance);
+                }
+                if (updates.containsKey("totalPurchases")) {
+                    float totalPurchases = ((Number) updates.get("totalPurchases")).floatValue();
+                    customer.setTotalPurchasesAmount(totalPurchases);
+                }
+                if (updates.containsKey("fullName")) {
+                    customer.setFullName((String) updates.get("fullName"));
+                }
+                
+                customerService.saveRegularCustomer(customer);
+            }
+
+            response.put("success", true);
+            response.put("message", "Дані користувача успішно оновлено");
+            
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("message", "Помилка оновлення користувача: " + e.getMessage());
+        }
+
+        return response;
+    }
+
+    @Transactional
+    public Map<String, Object> resetUserPassword(Long adminId, Long userId) {
+        Map<String, Object> response = new HashMap<>();
+
+        // Перевіряємо права адміністратора
+        Optional<Admin> adminOpt = adminRepository.findById(adminId);
+        if (adminOpt.isEmpty()) {
+            response.put("success", false);
+            response.put("message", "Адміністратор не знайдений");
+            return response;
+        }
+
+        Admin admin = adminOpt.get();
+        if (!admin.hasPermission("MANAGE_USERS")) {
+            response.put("success", false);
+            response.put("message", "Немає прав на управління користувачами");
+            return response;
+        }
+
+        try {
+            Optional<User> userOpt = userRepository.findById(userId);
+            if (userOpt.isEmpty()) {
+                response.put("success", false);
+                response.put("message", "Користувач не знайдений");
+                return response;
+            }
+
+            User user = userOpt.get();
+            String newPassword = "password123"; // Стандартний пароль
+            user.setPassword(passwordEncoder.encode(newPassword));
+            userRepository.save(user);
+
+            response.put("success", true);
+            response.put("message", "Пароль користувача скинуто");
+            response.put("newPassword", newPassword);
+            
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("message", "Помилка скидання пароля: " + e.getMessage());
+        }
+
+        return response;
+    }
+
+    public Map<String, Object> getUserStats(Long adminId) {
+        Map<String, Object> response = new HashMap<>();
+
+        // Перевіряємо права адміністратора
+        Optional<Admin> adminOpt = adminRepository.findById(adminId);
+        if (adminOpt.isEmpty()) {
+            response.put("success", false);
+            response.put("message", "Адміністратор не знайдений");
+            return response;
+        }
+
+        Admin admin = adminOpt.get();
+        if (!admin.hasPermission("MANAGE_USERS")) {
+            response.put("success", false);
+            response.put("message", "Немає прав на управління користувачами");
+            return response;
+        }
+
+        try {
+            List<User> users = userRepository.findAll();
+            List<RegularCustomer> customers = customerService.getAllRegularCustomers();
+            
+            Map<String, Object> stats = new HashMap<>();
+            stats.put("totalUsers", users.size());
+            stats.put("activeUsers", users.stream().filter(User::isActive).count());
+            stats.put("adminUsers", users.stream().filter(u -> u.getRole() == User.Role.ADMIN).count());
+            stats.put("regularUsers", users.stream().filter(u -> u.getRole() == User.Role.USER).count());
+            
+            if (!customers.isEmpty()) {
+                stats.put("totalBalance", customers.stream().mapToDouble(Customer::getMoney).sum());
+                stats.put("averageBalance", customers.stream().mapToDouble(Customer::getMoney).average().orElse(0.0));
+                stats.put("totalPurchases", customers.stream().mapToDouble(RegularCustomer::getTotalPurchasesAmount).sum());
+                stats.put("averageDiscount", customers.stream().mapToDouble(Customer::getIndividualDiscount).average().orElse(0.0));
+            }
+            
+            response.put("success", true);
+            response.put("stats", stats);
+            
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("message", "Помилка отримання статистики: " + e.getMessage());
+        }
+
+        return response;
+    }
+
+    private RegularCustomer findCustomerByUserId(Long userId) {
+        // Шукаємо покупця за ім'ям (містить ID користувача)
+        String searchPattern = "(ID: " + userId + ")";
+        return customerService.getAllRegularCustomers().stream()
+                .filter(customer -> customer.getFullName().contains(searchPattern))
+                .findFirst()
+                .orElse(null);
     }
 } 

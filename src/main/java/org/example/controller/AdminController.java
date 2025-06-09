@@ -196,4 +196,73 @@ public class AdminController {
         log.info("Successful retrieval of product stats: " + stats.toString());
         return ResponseEntity.ok(stats);
     }
+
+    // === УПРАВЛІННЯ КОРИСТУВАЧАМИ ===
+
+    @GetMapping("/users")
+    public ResponseEntity<Map<String, Object>> getAllUsers(@RequestParam Long adminId) {
+        Map<String, Object> response = adminService.getAllUsers(adminId);
+        if ((Boolean) response.get("success")) {
+            log.info("Successful retrieval of all users by admin " + adminId);
+            return ResponseEntity.ok(response);
+        } else {
+            log.error("Failed retrieval of all users by admin " + adminId);
+            return ResponseEntity.badRequest().body(response);
+        }
+    }
+
+    @GetMapping("/users/{userId}")
+    public ResponseEntity<Map<String, Object>> getUserDetails(
+            @PathVariable Long userId,
+            @RequestParam Long adminId) {
+        Map<String, Object> response = adminService.getUserDetails(adminId, userId);
+        if ((Boolean) response.get("success")) {
+            log.info("Successful retrieval of user " + userId + " details by admin " + adminId);
+            return ResponseEntity.ok(response);
+        } else {
+            log.error("Failed retrieval of user " + userId + " details by admin " + adminId);
+            return ResponseEntity.badRequest().body(response);
+        }
+    }
+
+    @PutMapping("/users/{userId}")
+    public ResponseEntity<Map<String, Object>> updateUser(
+            @PathVariable Long userId,
+            @RequestParam Long adminId,
+            @RequestBody Map<String, Object> updates) {
+        Map<String, Object> response = adminService.updateUser(adminId, userId, updates);
+        if ((Boolean) response.get("success")) {
+            log.info("Successful update of user " + userId + " by admin " + adminId + ": " + updates.toString());
+            return ResponseEntity.ok(response);
+        } else {
+            log.error("Failed update of user " + userId + " by admin " + adminId + ": " + updates.toString());
+            return ResponseEntity.badRequest().body(response);
+        }
+    }
+
+    @PostMapping("/users/{userId}/reset-password")
+    public ResponseEntity<Map<String, Object>> resetUserPassword(
+            @PathVariable Long userId,
+            @RequestParam Long adminId) {
+        Map<String, Object> response = adminService.resetUserPassword(adminId, userId);
+        if ((Boolean) response.get("success")) {
+            log.info("Successful password reset for user " + userId + " by admin " + adminId);
+            return ResponseEntity.ok(response);
+        } else {
+            log.error("Failed password reset for user " + userId + " by admin " + adminId);
+            return ResponseEntity.badRequest().body(response);
+        }
+    }
+
+    @GetMapping("/users/stats")
+    public ResponseEntity<Map<String, Object>> getUserStats(@RequestParam Long adminId) {
+        Map<String, Object> response = adminService.getUserStats(adminId);
+        if ((Boolean) response.get("success")) {
+            log.info("Successful retrieval of user stats by admin " + adminId);
+            return ResponseEntity.ok(response);
+        } else {
+            log.error("Failed retrieval of user stats by admin " + adminId);
+            return ResponseEntity.badRequest().body(response);
+        }
+    }
 } 

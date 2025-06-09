@@ -21,7 +21,7 @@ function loadProducts() {
                     <div class="product-info">
                         <h3 class="product-name">${product.name}</h3>
                         <p class="product-firm">${product.firm}</p>
-                        <p class="product-price">${product.price}₴</p>
+                        <p class="product-price">${product.price.toFixed(2)}₴</p>
                         <p class="product-stock ${product.quantity > 0 ? 'in-stock' : 'out-of-stock'}">${product.quantity > 0 ? 'В наявності: ' + product.quantity + ' шт.' : 'Немає на складі'}</p>
                     </div>
                 `;
@@ -42,7 +42,7 @@ function loadProductsForAdmin() {
                 products.forEach(product => {
                     const option = document.createElement('option');
                     option.value = product.id;
-                    option.textContent = `${product.name} - ${product.price}₴ [Склад: ${product.quantity}]`;
+                    option.textContent = `${product.name} - ${product.price.toFixed(2)}₴ [Склад: ${product.quantity}]`;
                     adminSelect.appendChild(option);
                 });
             }
@@ -54,7 +54,7 @@ function loadProductsForAdmin() {
                 products.forEach(product => {
                     const option = document.createElement('option');
                     option.value = product.id;
-                    option.textContent = `${product.name} (${product.firm}) - ${product.price}₴`;
+                    option.textContent = `${product.name} (${product.firm}) - ${product.price.toFixed(2)}₴`;
                     editSelect.appendChild(option);
                 });
             }
@@ -75,7 +75,7 @@ function openProductModal(product) {
     document.getElementById('modalProductName').textContent = product.name;
     document.getElementById('modalProductTitle').textContent = product.name;
     document.getElementById('modalProductFirm').textContent = product.firm;
-    document.getElementById('modalProductPrice').textContent = product.price + '₴';
+    document.getElementById('modalProductPrice').textContent = product.price.toFixed(2) + '₴';
     
     // Встановлюємо зображення
     const imageContainer = document.getElementById('modalProductImage');
@@ -125,7 +125,7 @@ function displayProductCharacteristics(product) {
     // Загальні характеристики
     characteristics.push({ label: 'Назва', value: product.name });
     characteristics.push({ label: 'Виробник', value: product.firm });
-    characteristics.push({ label: 'Ціна', value: product.price + '₴' });
+    characteristics.push({ label: 'Ціна', value: product.price.toFixed(2) + '₴' });
     characteristics.push({ label: 'Максимальна знижка', value: product.maxDiscountPercentage + '%' });
     characteristics.push({ label: 'Кількість на складі', value: product.quantity + ' шт.' });
     
@@ -164,7 +164,7 @@ function displayBasicCharacteristics(product) {
     const characteristics = [
         { label: 'Назва', value: product.name },
         { label: 'Виробник', value: product.firm },
-        { label: 'Ціна', value: product.price + '₴' },
+                    { label: 'Ціна', value: product.price.toFixed(2) + '₴' },
         { label: 'Кількість на складі', value: product.quantity + ' шт.' }
     ];
     

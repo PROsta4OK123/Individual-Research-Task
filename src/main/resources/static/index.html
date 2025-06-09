@@ -290,7 +290,63 @@
             </div>
 
             <div class="section">
-                <h2>📊 Статистика</h2>
+                <h2>👥 Управління користувачами</h2>
+                <div class="form-group">
+                    <label for="userSelect">Оберіть користувача:</label>
+                    <select id="userSelect" onchange="loadUserForEdit()">
+                        <option value="">Оберіть користувача...</option>
+                    </select>
+                </div>
+                <button onclick="loadAllUsers()" class="success-btn">🔄 Завантажити користувачів</button>
+                
+                <!-- Форма редагування користувача -->
+                <div id="editUserForm" class="hidden">
+                    <h3 id="editUserTitle">Редагування користувача</h3>
+                    
+                    <div class="form-group">
+                        <label>Основна інформація:</label>
+                        <div class="grid">
+                            <input type="text" id="editUserUsername" placeholder="Ім'я користувача" readonly>
+                            <input type="email" id="editUserEmail" placeholder="Email" readonly>
+                            <select id="editUserRole">
+                                <option value="USER">👤 Користувач</option>
+                                <option value="ADMIN">👨‍💼 Адміністратор</option>
+                            </select>
+                            <label>
+                                <input type="checkbox" id="editUserActive"> Активний
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Фінансова інформація:</label>
+                        <div class="grid">
+                            <input type="number" id="editUserBalance" placeholder="Баланс" step="0.01">
+                            <input type="number" id="editUserTotalPurchases" placeholder="Загальна сума покупок" step="0.01">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Додаткова інформація:</label>
+                        <input type="text" id="editUserFullName" placeholder="Повне ім'я">
+                    </div>
+                    
+                    <div class="grid">
+                        <button class="admin-btn" onclick="saveUserChanges()">💾 Зберегти зміни</button>
+                        <button class="btn" onclick="cancelUserEdit()">❌ Скасувати</button>
+                        <button class="danger-btn" onclick="resetUserPassword()">🔑 Скинути пароль</button>
+                    </div>
+                </div>
+                
+                <!-- Статистика користувачів -->
+                <div class="form-group">
+                    <button onclick="loadUserStats()" class="success-btn">📊 Статистика користувачів</button>
+                    <div id="userStatsResult"></div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>📊 Статистика товарів</h2>
                 <button onclick="loadProductStats()" class="success-btn">📈 Завантажити статистику товарів</button>
                 <div id="statsResult"></div>
             </div>

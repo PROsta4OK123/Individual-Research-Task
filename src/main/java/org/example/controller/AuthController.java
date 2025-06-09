@@ -134,4 +134,14 @@ public class AuthController {
             return ResponseEntity.badRequest().body(response);
         }
     }
+
+    @GetMapping("/user-info")
+    public ResponseEntity<Map<String, Object>> getCurrentUserInfo(@RequestParam Long customerId) {
+        Map<String, Object> response = authService.getCurrentUserInfo(customerId);
+        if ((Boolean) response.get("success")) {
+            return ResponseEntity.ok(response);
+        } else {
+            return ResponseEntity.badRequest().body(response);
+        }
+    }
 } 

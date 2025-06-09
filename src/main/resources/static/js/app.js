@@ -73,15 +73,15 @@ function showMainApp() {
     if (currentUser.role === 'ADMIN') {
         roleIcon = '👨‍💼';
         roleText = 'Адміністратор';
-        userInfo = `Баланс: ${currentUser.balance}₴ | Знижка: ${currentUser.discount.toFixed(1)}% | Покупки: ${currentUser.totalPurchases}₴`;
+        userInfo = `Баланс: ${currentUser.balance.toFixed(2)}₴ | Знижка: ${currentUser.discount.toFixed(1)}% | Покупки: ${currentUser.totalPurchases.toFixed(2)}₴`;
     } else if (currentUser.role === 'GUEST') {
         roleIcon = '🎫';
         roleText = 'Гість';
-        userInfo = `Баланс: ${currentUser.balance}₴ | Знижка: відсутня`;
+        userInfo = `Баланс: ${currentUser.balance.toFixed(2)}₴ | Знижка: відсутня`;
     } else {
         roleIcon = '⭐';
         roleText = 'Постійний покупець';
-        userInfo = `Баланс: ${currentUser.balance}₴ | Знижка: ${currentUser.discount.toFixed(1)}% | Покупки: ${currentUser.totalPurchases}₴`;
+        userInfo = `Баланс: ${currentUser.balance.toFixed(2)}₴ | Знижка: ${currentUser.discount.toFixed(1)}% | Покупки: ${currentUser.totalPurchases.toFixed(2)}₴`;
     }
     
     document.getElementById('userWelcome').innerHTML = `
@@ -112,15 +112,15 @@ function updateUserInfo() {
     if (currentUser.role === 'ADMIN') {
         roleIcon = '👨‍💼';
         roleText = 'Адміністратор';
-        userInfo = `Баланс: ${currentUser.balance}₴ | Знижка: ${currentUser.discount.toFixed(1)}% | Покупки: ${currentUser.totalPurchases}₴`;
+        userInfo = `Баланс: ${currentUser.balance.toFixed(2)}₴ | Знижка: ${currentUser.discount.toFixed(1)}% | Покупки: ${currentUser.totalPurchases.toFixed(2)}₴`;
     } else if (currentUser.role === 'GUEST') {
         roleIcon = '🎫';
         roleText = 'Гість';
-        userInfo = `Баланс: ${currentUser.balance}₴ | Знижка: відсутня`;
+        userInfo = `Баланс: ${currentUser.balance.toFixed(2)}₴ | Знижка: відсутня`;
     } else {
         roleIcon = '⭐';
         roleText = 'Постійний покупець';
-        userInfo = `Баланс: ${currentUser.balance}₴ | Знижка: ${currentUser.discount.toFixed(1)}% | Покупки: ${currentUser.totalPurchases}₴`;
+        userInfo = `Баланс: ${currentUser.balance.toFixed(2)}₴ | Знижка: ${currentUser.discount.toFixed(1)}% | Покупки: ${currentUser.totalPurchases.toFixed(2)}₴`;
     }
     
     document.getElementById('userWelcome').innerHTML = `
