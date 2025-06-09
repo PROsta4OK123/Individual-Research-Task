@@ -1,6 +1,7 @@
 package org.example.entity;
 
 import jakarta.persistence.*;
+
 import java.time.LocalDateTime;
 
 @Entity
@@ -17,7 +18,7 @@ public class Admin extends User {
     private String permissions = "MANAGE_PRODUCTS,MANAGE_USERS";
 
     // Конструктор по умолчанию для JPA
-    protected Admin() {
+    public Admin() {
         super();
     }
 

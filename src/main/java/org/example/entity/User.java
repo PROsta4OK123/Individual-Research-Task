@@ -1,8 +1,8 @@
 package org.example.entity;
 
 import jakarta.persistence.*;
+
 import java.time.LocalDateTime;
-import java.util.Set;
 
 @Entity
 @Table(name = "users")
@@ -33,7 +33,7 @@ public class User {
     private boolean isActive = true;
 
     // Конструктор по умолчанию для JPA
-    protected User() {}
+    public User() {}
 
     public User(String username, String email, String password, Role role) {
         this.username = username;
@@ -103,6 +103,6 @@ public class User {
 
     // Enum для ролей
     public enum Role {
-        USER, ADMIN
+        ADMIN, USER
     }
 } 

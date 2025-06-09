@@ -178,6 +178,47 @@
             </div>
 
             <div class="section">
+                <h2>✏️ Редагування товару</h2>
+                <div class="form-group">
+                    <label for="editProductSelect">Оберіть товар для редагування:</label>
+                    <select id="editProductSelect" onchange="loadProductForEdit()">
+                        <option value="">Оберіть товар...</option>
+                    </select>
+                </div>
+                
+                <!-- Форма редагування -->
+                <div id="editProductForm" class="hidden">
+                    <h3 id="editProductTitle">Редагування товару</h3>
+                    
+                    <!-- Загальні поля -->
+                    <div class="form-group">
+                        <label>Основна інформація:</label>
+                        <div class="grid">
+                            <input type="text" id="editName" placeholder="Назва">
+                            <input type="number" id="editPrice" placeholder="Ціна" step="0.01">
+                            <input type="text" id="editFirm" placeholder="Виробник">
+                            <input type="number" id="editDiscount" placeholder="Макс. знижка %" step="0.1">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <input type="url" id="editImageURL" placeholder="URL зображення">
+                        <input type="number" id="editQuantity" placeholder="Кількість на складі" min="0">
+                    </div>
+                    
+                    <!-- Специфічні поля для кожного типу товару -->
+                    <div id="editSpecificFields">
+                        <!-- Поля будуть додані динамічно -->
+                    </div>
+                    
+                    <div class="grid">
+                        <button class="admin-btn" onclick="saveProductChanges()">💾 Зберегти зміни</button>
+                        <button class="btn" onclick="cancelProductEdit()">❌ Скасувати</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
                 <h2>➕ Створення товару</h2>
                 <div class="form-group">
                     <label for="productType">Тип товару:</label>

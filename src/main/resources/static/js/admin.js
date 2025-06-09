@@ -217,4 +217,163 @@ function loadProductStats() {
             document.getElementById('statsResult').innerHTML = statsHtml;
         })
         .catch(error => showResult('❌ Помилка завантаження статистики: ' + error.message, 'error', 'admin'));
+}
+
+// === РЕДАГУВАННЯ ТОВАРІВ ===
+let editingProduct = null;
+
+function loadProductForEdit() {
+    const productId = document.getElementById('editProductSelect').value;
+    
+    if (!productId) {
+        document.getElementById('editProductForm').classList.add('hidden');
+        editingProduct = null;
+        return;
+    }
+
+    fetch(`${API_BASE}/products`)
+        .then(response => response.json())
+        .then(products => {
+            const product = products.find(p => p.id == productId);
+            if (product) {
+                editingProduct = product;
+                populateEditForm(product);
+                document.getElementById('editProductForm').classList.remove('hidden');
+            }
+        })
+        .catch(error => showResult('❌ Помилка завантаження товару: ' + error.message, 'error', 'admin'));
+}
+
+function populateEditForm(product) {
+    const productType = product.productType || getProductType(product);
+    
+    // Загальні поля
+    document.getElementById('editName').value = product.name || '';
+    document.getElementById('editPrice').value = product.price || '';
+    document.getElementById('editFirm').value = product.firm || '';
+    document.getElementById('editDiscount').value = product.maxDiscountPercentage || '';
+    document.getElementById('editImageURL').value = product.imageURL || '';
+    document.getElementById('editQuantity').value = product.quantity || '';
+    
+    // Заголовок
+    document.getElementById('editProductTitle').textContent = `Редагування: ${product.name} (${productType})`;
+    
+    // Специфічні поля
+    const specificFieldsContainer = document.getElementById('editSpecificFields');
+    specificFieldsContainer.innerHTML = '';
+    
+    if (productType === 'Laptop') {
+        specificFieldsContainer.innerHTML = `
+            <div class="form-group">
+                <label>Характеристики ноутбука:</label>
+                <div class="grid">
+                    <input type="number" id="editDiagonalSize" placeholder="Діагональ (дюйми)" value="${product.diagonalSize || ''}">
+                    <input type="number" id="editWeight" placeholder="Вага (кг)" step="0.1" value="${product.weight || ''}">
+                    <input type="number" id="editCpuCoreCount" placeholder="Кількість ядер" value="${product.cpuCoreCount || ''}">
+                    <input type="number" id="editMemoryCount" placeholder="Пам'ять (МБ)" value="${product.memoryCount || ''}">
+                </div>
+            </div>
+        `;
+    } else if (productType === 'MobilePhone' || productType === 'Smartphone') {
+        let phoneFields = `
+            <div class="form-group">
+                <label>Характеристики телефону:</label>
+                <div class="grid">
+                    <select id="editIsContract">
+                        <option value="false" ${!product.contract ? 'selected' : ''}>Без контракту</option>
+                        <option value="true" ${product.contract ? 'selected' : ''}>З контрактом</option>
+                    </select>
+                    <input type="number" id="editMaxSimValue" placeholder="Макс. SIM-карт" min="1" value="${product.maxSimValue || ''}">
+                </div>
+            </div>
+        `;
+        
+        if (productType === 'Smartphone') {
+            phoneFields += `
+                <div class="form-group">
+                    <label>Додаткові характеристики смартфону:</label>
+                    <input type="text" id="editOS" placeholder="Операційна система" value="${product.os || ''}">
+                    <textarea id="editInstalledPrograms" placeholder="Встановлені програми (через кому)" rows="2">${product.installedPrograms ? product.installedPrograms.join(', ') : ''}</textarea>
+                </div>
+            `;
+        }
+        
+        specificFieldsContainer.innerHTML = phoneFields;
+    }
+}
+
+function getProductType(product) {
+    // Визначаємо тип товару на основі наявних полів
+    if (product.hasOwnProperty('diagonalSize') || product.hasOwnProperty('cpuCoreCount')) {
+        return 'Laptop';
+    } else if (product.hasOwnProperty('os') || product.hasOwnProperty('installedPrograms')) {
+        return 'Smartphone';
+    } else if (product.hasOwnProperty('maxSimValue') || product.hasOwnProperty('contract')) {
+        return 'MobilePhone';
+    }
+    return 'Product';
+}
+
+function saveProductChanges() {
+    if (!currentUser || currentUser.role !== 'ADMIN') {
+        showResult('❌ Немає прав адміністратора', 'error', 'admin');
+        return;
+    }
+
+    if (!editingProduct) {
+        showResult('❌ Товар не обрано для редагування', 'error', 'admin');
+        return;
+    }
+
+    const updates = {
+        name: document.getElementById('editName').value,
+        price: parseFloat(document.getElementById('editPrice').value),
+        firm: document.getElementById('editFirm').value,
+        maxDiscountPercentage: parseFloat(document.getElementById('editDiscount').value),
+        imageURL: document.getElementById('editImageURL').value,
+        quantity: parseInt(document.getElementById('editQuantity').value)
+    };
+
+    // Додаємо специфічні поля в залежності від типу товару
+    const productType = getProductType(editingProduct);
+    
+    if (productType === 'Laptop') {
+        updates.diagonalSize = parseInt(document.getElementById('editDiagonalSize').value);
+        updates.weight = parseFloat(document.getElementById('editWeight').value);
+        updates.cpuCoreCount = parseInt(document.getElementById('editCpuCoreCount').value);
+        updates.memoryCount = parseInt(document.getElementById('editMemoryCount').value);
+    } else if (productType === 'MobilePhone' || productType === 'Smartphone') {
+        updates.isContract = document.getElementById('editIsContract').value === 'true';
+        updates.maxSimValue = parseInt(document.getElementById('editMaxSimValue').value);
+        
+        if (productType === 'Smartphone') {
+            updates.OS = document.getElementById('editOS').value;
+            const programsText = document.getElementById('editInstalledPrograms').value;
+            updates.installedPrograms = programsText || '';
+        }
+    }
+
+    fetch(`${API_BASE}/admin/products/${editingProduct.id}?adminId=${currentUser.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showResult(`✅ Товар "${editingProduct.name}" успішно оновлено!`, 'success', 'admin');
+            loadProducts();
+            loadProductsForAdmin();
+            cancelProductEdit();
+        } else {
+            showResult('❌ ' + data.message, 'error', 'admin');
+        }
+    })
+    .catch(error => showResult('❌ Помилка збереження: ' + error.message, 'error', 'admin'));
+}
+
+function cancelProductEdit() {
+    document.getElementById('editProductForm').classList.add('hidden');
+    document.getElementById('editProductSelect').value = '';
+    editingProduct = null;
 } 

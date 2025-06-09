@@ -166,6 +166,11 @@ button:hover {
     display: none !important;
 }
 
+/* Захист - ховаємо адмінську кнопку за замовчуванням */
+#adminTabBtn {
+    display: none;
+}
+
 /* Заголовок користувача */
 .user-header {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);

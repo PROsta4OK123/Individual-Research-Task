@@ -8,6 +8,9 @@ services:
       - "8080:8080"
     environment:
       - SPRING_PROFILES_ACTIVE=docker
+      # JWT переменные окружения для продакшена
+      - JWT_SECRET=VoiceMoodProductionSecretKeyForJWTTokenGenerationAndValidation2024SuperSecureKey
+      - JWT_EXPIRATION=86400000
     volumes:
       # Монтуємо volume для збереження даних (якщо потрібно)
       - app-data:/app/data

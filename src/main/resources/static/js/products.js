@@ -35,14 +35,29 @@ function loadProductsForAdmin() {
     fetch(`${API_BASE}/products`)
         .then(response => response.json())
         .then(products => {
-            const select = document.getElementById('adminProducts');
-            select.innerHTML = '<option value="">Оберіть товар...</option>';
-            products.forEach(product => {
-                const option = document.createElement('option');
-                option.value = product.id;
-                option.textContent = `${product.name} - ${product.price}₴ [Склад: ${product.quantity}]`;
-                select.appendChild(option);
-            });
+            // Заполняем селект управления товарами
+            const adminSelect = document.getElementById('adminProducts');
+            if (adminSelect) {
+                adminSelect.innerHTML = '<option value="">Оберіть товар...</option>';
+                products.forEach(product => {
+                    const option = document.createElement('option');
+                    option.value = product.id;
+                    option.textContent = `${product.name} - ${product.price}₴ [Склад: ${product.quantity}]`;
+                    adminSelect.appendChild(option);
+                });
+            }
+            
+            // Заполняем селект редактирования товаров
+            const editSelect = document.getElementById('editProductSelect');
+            if (editSelect) {
+                editSelect.innerHTML = '<option value="">Оберіть товар...</option>';
+                products.forEach(product => {
+                    const option = document.createElement('option');
+                    option.value = product.id;
+                    option.textContent = `${product.name} (${product.firm}) - ${product.price}₴`;
+                    editSelect.appendChild(option);
+                });
+            }
         })
         .catch(error => showResult('❌ Помилка завантаження товарів: ' + error.message, 'error', 'admin'));
 }

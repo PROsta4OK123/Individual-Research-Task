@@ -2,6 +2,7 @@ package org.example.security;
 
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
@@ -10,13 +11,25 @@ import java.util.Date;
 @Component
 public class JwtUtils {
     
-    private static final String JWT_SECRET = "VoiceMoodSecretKeyForJWTTokenGenerationAndValidation2024";
-    private static final int JWT_EXPIRATION_MS = 86400000; // 24 часа
+    // Получаем секрет из переменных окружения или application.properties
+    @Value("${app.jwt.secret:VoiceMoodSecretKeyForJWTTokenGenerationAndValidation2024SuperSecureDefaultKey}")
+    private String jwtSecret;
     
-    private final SecretKey key;
+    @Value("${app.jwt.expiration:86400000}")
+    private int jwtExpirationMs; // 24 часа по умолчанию
     
-    public JwtUtils() {
-        this.key = Keys.hmacShaKeyFor(JWT_SECRET.getBytes());
+    private SecretKey key;
+    
+    // Ленивая инициализация ключа
+    private SecretKey getSigningKey() {
+        if (key == null) {
+            // Проверяем длину ключа для безопасности
+            if (jwtSecret.length() < 64) {
+                throw new IllegalArgumentException("JWT secret must be at least 64 characters for HS512 algorithm");
+            }
+            key = Keys.hmacShaKeyFor(jwtSecret.getBytes());
+        }
+        return key;
     }
     
     /**
@@ -28,8 +41,8 @@ public class JwtUtils {
                 .claim("role", role)
                 .claim("userId", userId)
                 .setIssuedAt(new Date())
-                .setExpiration(new Date((new Date()).getTime() + JWT_EXPIRATION_MS))
-                .signWith(key, SignatureAlgorithm.HS512)
+                .setExpiration(new Date((new Date()).getTime() + jwtExpirationMs))
+                .signWith(getSigningKey(), SignatureAlgorithm.HS512)
                 .compact();
     }
     
@@ -38,7 +51,7 @@ public class JwtUtils {
      */
     public String getUserNameFromJwtToken(String token) {
         return Jwts.parserBuilder()
-                .setSigningKey(key)
+                .setSigningKey(getSigningKey())
                 .build()
                 .parseClaimsJws(token)
                 .getBody()
@@ -50,7 +63,7 @@ public class JwtUtils {
      */
     public String getRoleFromJwtToken(String token) {
         return Jwts.parserBuilder()
-                .setSigningKey(key)
+                .setSigningKey(getSigningKey())
                 .build()
                 .parseClaimsJws(token)
                 .getBody()
@@ -62,7 +75,7 @@ public class JwtUtils {
      */
     public Long getUserIdFromJwtToken(String token) {
         return Jwts.parserBuilder()
-                .setSigningKey(key)
+                .setSigningKey(getSigningKey())
                 .build()
                 .parseClaimsJws(token)
                 .getBody()
@@ -75,7 +88,7 @@ public class JwtUtils {
     public boolean validateJwtToken(String authToken) {
         try {
             Jwts.parserBuilder()
-                .setSigningKey(key)
+                .setSigningKey(getSigningKey())
                 .build()
                 .parseClaimsJws(authToken);
             return true;

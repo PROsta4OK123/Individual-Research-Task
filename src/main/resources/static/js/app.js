@@ -35,6 +35,12 @@ window.addEventListener('beforeunload', function(event) {
 
 // === НАВІГАЦІЯ ===
 function showTab(tabName) {
+    // Проверяємо права доступа для админської вкладки
+    if (tabName === 'admin' && (!currentUser || currentUser.role !== 'ADMIN')) {
+        showResult('❌ У вас немає прав доступа до адміністративної панелі', 'error', 'shopping');
+        return;
+    }
+    
     // Прибираємо активний клас з усіх кнопок
     document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
     
@@ -83,16 +89,17 @@ function showMainApp() {
         <small style="font-size: 12px; opacity: 0.9;">${userInfo}</small>
     `;
     
-    // Показуємо адмінську вкладку для адміністраторів
+    // Показуємо адмінську вкладку тільки для адміністраторів
+    const adminTabBtn = document.getElementById('adminTabBtn');
     if (currentUser.role === 'ADMIN') {
-        document.getElementById('adminTabBtn').style.display = 'block';
+        adminTabBtn.style.display = 'block';
+        loadProductsForAdmin();
+    } else {
+        adminTabBtn.style.display = 'none';
     }
     
     // Завантажуємо дані
     loadProducts();
-    if (currentUser.role === 'ADMIN') {
-        loadProductsForAdmin();
-    }
     
     // Показуємо вкладку покупок за замовчуванням
     showTab('shopping');

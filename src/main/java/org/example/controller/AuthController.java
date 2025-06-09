@@ -1,6 +1,8 @@
 package org.example.controller;
 
 import org.example.service.AuthService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -12,6 +14,7 @@ import java.util.Map;
 @CrossOrigin(origins = "*")
 public class AuthController {
 
+    private static final Logger log = LoggerFactory.getLogger(AuthController.class);
     @Autowired
     private AuthService authService;
 
@@ -31,8 +34,10 @@ public class AuthController {
         Map<String, Object> response = authService.registerUser(username, email, password);
         
         if ((Boolean) response.get("success")) {
+            log.info("Successful registration of user " + username + " with email " + email);
             return ResponseEntity.ok(response);
         } else {
+            log.error("Failed registration of user " + username + " with email " + email);
             return ResponseEntity.badRequest().body(response);
         }
     }
@@ -54,8 +59,10 @@ public class AuthController {
         Map<String, Object> response = authService.registerAdmin(username, email, password, adminKey);
         
         if ((Boolean) response.get("success")) {
+            log.info("Successful registration of admin " + username + " with email " + email);
             return ResponseEntity.ok(response);
         } else {
+            log.error("Failed registration of admin " + username + " with email " + email);
             return ResponseEntity.badRequest().body(response);
         }
     }
@@ -75,8 +82,10 @@ public class AuthController {
         Map<String, Object> response = authService.authenticate(username, password);
         
         if ((Boolean) response.get("success")) {
+            log.info("Successful authentication of user " + username);
             return ResponseEntity.ok(response);
         } else {
+            log.error("Failed authentication of user " + username);
             return ResponseEntity.status(401).body(response);
         }
     }
@@ -118,8 +127,10 @@ public class AuthController {
         Map<String, Object> response = authService.deleteGuestAccount(token);
         
         if ((Boolean) response.get("success")) {
+            log.info("Successful logout of guest account");
             return ResponseEntity.ok(response);
         } else {
+            log.error("Failed logout of guest account");
             return ResponseEntity.badRequest().body(response);
         }
     }

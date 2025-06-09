@@ -6,6 +6,8 @@ import org.example.entity.Purchase;
 import org.example.service.CustomerService;
 import org.example.service.ProductService;
 import org.example.service.PurchaseService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -20,6 +22,7 @@ import java.util.Optional;
 @CrossOrigin(origins = "*")
 public class PurchaseController {
 
+    private static final Logger log = LoggerFactory.getLogger(PurchaseController.class);
     @Autowired
     private PurchaseService purchaseService;
 
@@ -41,6 +44,7 @@ public class PurchaseController {
             if (customerOpt.isEmpty() || productOpt.isEmpty()) {
                 response.put("success", false);
                 response.put("message", "Покупець або товар не знайдений");
+                log.error("Customer or product not found");
                 return ResponseEntity.badRequest().body(response);
             }
             
@@ -64,16 +68,19 @@ public class PurchaseController {
                 // Отримуємо оновлені дані покупця
                 Customer updatedCustomer = customerService.getCustomerById(customerId).get();
                 response.put("remainingMoney", updatedCustomer.getMoney());
-                
+
+                log.info("Purchase made successfully");
                 return ResponseEntity.ok(response);
             } else {
                 response.put("success", false);
                 response.put("message", "Покупка не вдалася");
+                log.error("Purchase failed");
                 return ResponseEntity.badRequest().body(response);
             }
         } catch (RuntimeException e) {
             response.put("success", false);
             response.put("message", e.getMessage());
+            log.error("Purchase failed: " + e.getMessage());
             return ResponseEntity.badRequest().body(response);
         }
     }

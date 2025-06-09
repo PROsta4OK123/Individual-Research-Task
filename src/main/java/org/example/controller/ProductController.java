@@ -2,6 +2,8 @@ package org.example.controller;
 
 import org.example.entity.Product;
 import org.example.service.ProductService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -14,6 +16,7 @@ import java.util.Optional;
 @CrossOrigin(origins = "*")
 public class ProductController {
 
+    private static final Logger log = LoggerFactory.getLogger(ProductController.class);
     @Autowired
     private ProductService productService;
 
@@ -43,8 +46,10 @@ public class ProductController {
             product.setPrice(productDetails.getPrice());
             product.setFirm(productDetails.getFirm());
             product.setMaxDiscountPercentage(productDetails.getMaxDiscountPercentage());
+            log.info("Updating product with id " + id);
             return ResponseEntity.ok(productService.saveProduct(product));
         }
+        log.info("Product with id " + id + " not found when tries to update");
         return ResponseEntity.notFound().build();
     }
 
@@ -52,8 +57,10 @@ public class ProductController {
     public ResponseEntity<Void> deleteProduct(@PathVariable Long id) {
         if (productService.getProductById(id).isPresent()) {
             productService.deleteProduct(id);
+            log.info("Deleting product with id " + id);
             return ResponseEntity.ok().build();
         }
+        log.info("Product with id " + id + " not found when tries to delete");
         return ResponseEntity.notFound().build();
     }
 

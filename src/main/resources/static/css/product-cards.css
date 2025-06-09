@@ -30,19 +30,21 @@
 .product-image {
     width: 100%;
     height: 200px;
-    object-fit: cover;
     background: #f8f9fa;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 48px;
     color: #6c757d;
+    overflow: hidden;
 }
 
 .product-image img {
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: contain;
+    object-position: center;
+    background: white;
 }
 
 .product-info {

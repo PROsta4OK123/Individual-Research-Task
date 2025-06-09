@@ -5,6 +5,8 @@ import org.example.entity.MobilePhone;
 import org.example.entity.Product;
 import org.example.entity.Smartphone;
 import org.example.service.AdminService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -17,6 +19,7 @@ import java.util.Map;
 @CrossOrigin(origins = "*")
 public class AdminController {
 
+    private static final Logger log = LoggerFactory.getLogger(AdminController.class);
     @Autowired
     private AdminService adminService;
 
@@ -29,8 +32,26 @@ public class AdminController {
         Map<String, Object> response = adminService.updateProductQuantity(adminId, productId, quantity);
 
         if ((Boolean) response.get("success")) {
+            log.info("Successful update of product quantity: " + productId + " by admin " + adminId + " to " + quantity + " units.");
             return ResponseEntity.ok(response);
         } else {
+            return ResponseEntity.badRequest().body(response);
+        }
+    }
+
+    @PutMapping("/products/{productId}")
+    public ResponseEntity<Map<String, Object>> updateProduct(
+            @PathVariable Long productId,
+            @RequestParam Long adminId,
+            @RequestBody Map<String, Object> updates) {
+
+        Map<String, Object> response = adminService.updateProduct(adminId, productId, updates);
+
+        if ((Boolean) response.get("success")) {
+            log.info("Successful update of product " + productId + " by admin " + adminId + ": " + updates.toString());
+            return ResponseEntity.ok(response);
+        } else {
+            log.error("Failed update of product " + productId + " by admin " + adminId + ": " + updates.toString());
             return ResponseEntity.badRequest().body(response);
         }
     }
@@ -43,8 +64,10 @@ public class AdminController {
         Map<String, Object> response = adminService.deleteProduct(adminId, productId);
 
         if ((Boolean) response.get("success")) {
+            log.info("Successful deletion of product " + productId + " by admin " + adminId);
             return ResponseEntity.ok(response);
         } else {
+            log.error("Failed deletion of product " + productId + " by admin " + adminId);
             return ResponseEntity.badRequest().body(response);
         }
     }
@@ -74,8 +97,10 @@ public class AdminController {
             Map<String, Object> response = adminService.createProduct(adminId, laptop);
 
             if ((Boolean) response.get("success")) {
+                log.info("Successful creation of laptop " + laptop.getName() + " by admin " + adminId);
                 return ResponseEntity.ok(response);
             } else {
+                log.error("Failed creation of laptop " + laptop.getName() + " by admin " + adminId);
                 return ResponseEntity.badRequest().body(response);
             }
         } catch (Exception e) {
@@ -109,8 +134,10 @@ public class AdminController {
             Map<String, Object> response = adminService.createProduct(adminId, phone);
 
             if ((Boolean) response.get("success")) {
+                log.info("Successful creation of mobile phone " + phone.getName() + " by admin " + adminId);
                 return ResponseEntity.ok(response);
             } else {
+                log.error("Failed creation of mobile phone " + phone.getName() + " by admin " + adminId);
                 return ResponseEntity.badRequest().body(response);
             }
         } catch (Exception e) {
@@ -149,8 +176,10 @@ public class AdminController {
             Map<String, Object> response = adminService.createProduct(adminId, smartphone);
 
             if ((Boolean) response.get("success")) {
+                log.info("Successful creation of smartphone " + smartphone.getName() + " by admin " + adminId);
                 return ResponseEntity.ok(response);
             } else {
+                log.error("Failed creation of smartphone " + smartphone.getName() + " by admin " + adminId);
                 return ResponseEntity.badRequest().body(response);
             }
         } catch (Exception e) {
@@ -164,6 +193,7 @@ public class AdminController {
     @GetMapping("/products/stats")
     public ResponseEntity<Map<String, Object>> getProductStats() {
         Map<String, Object> stats = adminService.getProductStats();
+        log.info("Successful retrieval of product stats: " + stats.toString());
         return ResponseEntity.ok(stats);
     }
 } 
