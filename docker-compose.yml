@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  voicemood-app:
+    build: .
+    container_name: voicemood-container
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    volumes:
+      # Монтуємо volume для збереження даних (якщо потрібно)
+      - app-data:/app/data
+    restart: unless-stopped
+    networks:
+      - voicemood-network
+
+networks:
+  voicemood-network:
+    driver: bridge
+
+volumes:
+  app-data: 

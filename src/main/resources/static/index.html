@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VoiceMood - Система покупок</title>
+    
+    <!-- CSS файли -->
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/product-cards.css">
+    <link rel="stylesheet" href="css/modal.css">
+    <link rel="stylesheet" href="css/history.css">
+</head>
+<body>
+    <!-- Сторінка авторизації -->
+    <div class="auth-container" id="authContainer">
+        <div class="logo">🛍️ VoiceMood</div>
+        
+        <div class="auth-tabs">
+            <button class="tab-btn active" onclick="showLogin()">Вхід</button>
+            <button class="tab-btn" onclick="showRegister()">Реєстрація</button>
+        </div>
+
+        <!-- Форма входу -->
+        <div id="loginForm">
+            <h2>Ласкаво просимо!</h2>
+            <div class="form-group">
+                <input type="text" id="loginUsername" placeholder="Ім'я користувача або Email">
+            </div>
+            <div class="form-group">
+                <input type="password" id="loginPassword" placeholder="Пароль">
+            </div>
+            <button onclick="login()">Увійти</button>
+            <button onclick="loginAsGuest()" style="background: linear-gradient(135deg, #6c757d 0%, #495057 100%); margin-top: 10px;" title="Тимчасовий акаунт без реєстрації. Видаляється при виході.">
+                🎫 Увійти як гість (тимчасово)
+            </button>
+            
+            <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #e9ecef; font-size: 14px; color: #6c757d;">
+                <p><strong>Тестові акаунти:</strong></p>
+                <p>👤 Користувач: testuser / password123</p>
+                <p>👨‍💼 Адмін: admin / admin123</p>
+                <hr style="margin: 10px 0;">
+                <p><strong>💡 Постійні покупці отримують персональні знижки!</strong></p>
+                <p><strong>🎫 Гості отримують фіксований баланс без знижок</strong></p>
+                <p><small style="color: #dc3545;">⚠️ Гостьові акаунти видаляються при виході</small></p>
+            </div>
+        </div>
+
+        <!-- Форма реєстрації -->
+        <div id="registerForm" class="hidden">
+            <h2>Створити акаунт</h2>
+            <div class="form-group">
+                <input type="text" id="regUsername" placeholder="Ім'я користувача">
+            </div>
+            <div class="form-group">
+                <input type="email" id="regEmail" placeholder="Email">
+            </div>
+            <div class="form-group">
+                <input type="password" id="regPassword" placeholder="Пароль">
+            </div>
+            <div class="form-group">
+                <input type="text" id="adminKey" placeholder="Адмін ключ (для адміністраторів)">
+                <small style="color: #6c757d;">Залиште порожнім для звичайного користувача</small>
+            </div>
+            <button onclick="register()">Зареєструватися</button>
+        </div>
+
+        <div id="authResult" class="result"></div>
+    </div>
+
+    <!-- Основна програма -->
+    <div class="main-container hidden" id="mainContainer">
+        <!-- Заголовок з інформацією про користувача -->
+        <div class="user-header">
+            <div>
+                <h1 style="margin: 0; color: white;">🛍️ VoiceMood - Система покупок</h1>
+                <p id="userWelcome" style="margin: 5px 0 0 0;"></p>
+            </div>
+            <button onclick="logout()" style="background: rgba(255,255,255,0.2); border: 2px solid white; padding: 10px 20px; border-radius: 25px;">
+                Вийти
+            </button>
+        </div>
+
+        <!-- Навігаційні вкладки -->
+        <div class="tab-buttons">
+            <button class="tab-btn active" onclick="showTab('shopping')">🛒 Покупки</button>
+            <button class="tab-btn" onclick="showTab('history')">📋 Історія покупок</button>
+            <button class="tab-btn" id="adminTabBtn" onclick="showTab('admin')" style="display: none;">⚙️ Адмінка</button>
+        </div>
+
+        <!-- Вкладка покупок -->
+        <div id="shoppingTab">
+            <div class="section">
+                <h2>🏪 Каталог товарів</h2>
+                <button onclick="loadProducts()" class="success-btn">🔄 Оновити каталог</button>
+                
+                <div id="productsGrid" class="product-grid">
+                    <!-- Товари будуть завантажені тут -->
+                </div>
+            </div>
+
+            <div id="shoppingResult" class="result"></div>
+        </div>
+
+        <!-- Вкладка історії покупок -->
+        <div id="historyTab" class="hidden">
+            <div class="section">
+                <h2>📋 Історія покупок</h2>
+                <button onclick="loadPurchaseHistory()" class="success-btn">🔄 Оновити історію</button>
+                
+                <!-- Статистика -->
+                <div id="purchaseStats" class="stats-grid">
+                    <!-- Статистика буде завантажена тут -->
+                </div>
+                
+                <!-- Список покупок -->
+                <div id="purchaseHistory" class="history-container">
+                    <!-- Історія покупок буде завантажена тут -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Модальне вікно товару -->
+        <div id="productModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 id="modalProductName">Деталі товару</h2>
+                    <button class="modal-close" onclick="closeProductModal()">×</button>
+                </div>
+                <div class="modal-body">
+                    <div class="product-detail-grid">
+                        <div class="product-detail-image" id="modalProductImage">
+                            <div style="font-size: 48px; color: #6c757d;">📦</div>
+                        </div>
+                        <div class="product-detail-info">
+                            <h2 id="modalProductTitle"></h2>
+                            <span class="product-firm-badge" id="modalProductFirm"></span>
+                            <div class="product-price-large" id="modalProductPrice"></div>
+                            <div class="stock-status" id="modalProductStock"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="product-characteristics" id="modalProductCharacteristics">
+                        <h3>📋 Характеристики</h3>
+                        <div id="characteristicsList"></div>
+                    </div>
+                    
+                    <div class="purchase-section">
+                        <h3>💳 Покупка товару</h3>
+                        <div class="grid">
+                            <button onclick="calculatePriceModal()" class="btn">📊 Розрахувати вартість</button>
+                            <button onclick="makePurchaseModal()" class="success-btn">🛒 Купити товар</button>
+                        </div>
+                        <div id="modalPurchaseResult" class="result" style="margin-top: 15px;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Адмінська панель -->
+        <div id="adminTab" class="hidden">
+            <div class="section">
+                <h2>📦 Управління товарами</h2>
+                <div class="form-group">
+                    <label for="adminProducts">Оберіть товар:</label>
+                    <select id="adminProducts">
+                        <option value="">Оберіть товар...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="newQuantity">Нова кількість на складі:</label>
+                    <input type="number" id="newQuantity" min="0" placeholder="Введіть кількість">
+                </div>
+                <div class="grid">
+                    <button class="admin-btn" onclick="updateQuantity()">📝 Оновити кількість</button>
+                    <button class="admin-btn" onclick="deleteProduct()">🗑️ Видалити товар</button>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>➕ Створення товару</h2>
+                <div class="form-group">
+                    <label for="productType">Тип товару:</label>
+                    <select id="productType" onchange="showProductForm()">
+                        <option value="">Оберіть тип...</option>
+                        <option value="laptop">💻 Ноутбук</option>
+                        <option value="mobile-phone">📱 Мобільний телефон</option>
+                        <option value="smartphone">📲 Смартфон</option>
+                    </select>
+                </div>
+
+                <!-- Форма для ноутбука -->
+                <div id="laptopForm" class="hidden">
+                    <h3>💻 Створення ноутбука</h3>
+                    <div class="grid">
+                        <input type="text" id="laptopName" placeholder="Назва">
+                        <input type="number" id="laptopPrice" placeholder="Ціна" step="0.01">
+                        <input type="text" id="laptopFirm" placeholder="Виробник">
+                        <input type="number" id="laptopDiscount" placeholder="Макс. знижка %" step="0.1">
+                        <input type="number" id="laptopDiagonal" placeholder="Діагональ (дюйми)">
+                        <input type="number" id="laptopWeight" placeholder="Вага (кг)" step="0.1">
+                        <input type="number" id="laptopCores" placeholder="Кількість ядер">
+                        <input type="number" id="laptopMemory" placeholder="Пам'ять (МБ)">
+                    </div>
+                    <input type="url" id="laptopImageURL" placeholder="URL зображення" style="margin-bottom: 15px;">
+                    <input type="number" id="laptopQuantity" placeholder="Кількість на складі" min="0">
+                    <button class="admin-btn" onclick="createLaptop()">➕ Створити ноутбук</button>
+                </div>
+
+                <!-- Форма для мобільного телефону -->
+                <div id="phoneForm" class="hidden">
+                    <h3>📱 Створення мобільного телефону</h3>
+                    <div class="grid">
+                        <input type="text" id="phoneName" placeholder="Назва">
+                        <input type="number" id="phonePrice" placeholder="Ціна" step="0.01">
+                        <input type="text" id="phoneFirm" placeholder="Виробник">
+                        <input type="number" id="phoneDiscount" placeholder="Макс. знижка %" step="0.1">
+                        <select id="phoneContract">
+                            <option value="false">Без контракту</option>
+                            <option value="true">З контрактом</option>
+                        </select>
+                        <input type="number" id="phoneSimCount" placeholder="Макс. SIM-карт" min="1">
+                    </div>
+                    <input type="url" id="phoneImageURL" placeholder="URL зображення" style="margin-bottom: 15px;">
+                    <input type="number" id="phoneQuantity" placeholder="Кількість на складі" min="0">
+                    <button class="admin-btn" onclick="createMobilePhone()">➕ Створити телефон</button>
+                </div>
+
+                <!-- Форма для смартфону -->
+                <div id="smartphoneForm" class="hidden">
+                    <h3>📲 Створення смартфону</h3>
+                    <div class="grid">
+                        <input type="text" id="smartphoneName" placeholder="Назва">
+                        <input type="number" id="smartphonePrice" placeholder="Ціна" step="0.01">
+                        <input type="text" id="smartphoneFirm" placeholder="Виробник">
+                        <input type="number" id="smartphoneDiscount" placeholder="Макс. знижка %" step="0.1">
+                        <select id="smartphoneContract">
+                            <option value="false">Без контракту</option>
+                            <option value="true">З контрактом</option>
+                        </select>
+                        <input type="number" id="smartphoneSimCount" placeholder="Макс. SIM-карт" min="1">
+                        <input type="text" id="smartphoneOS" placeholder="Операційна система">
+                    </div>
+                    <textarea id="smartphonePrograms" placeholder="Встановлені програми (через кому)" rows="3"></textarea>
+                    <input type="url" id="smartphoneImageURL" placeholder="URL зображення" style="margin-bottom: 15px;">
+                    <input type="number" id="smartphoneQuantity" placeholder="Кількість на складі" min="0">
+                    <button class="admin-btn" onclick="createSmartphone()">➕ Створити смартфон</button>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>📊 Статистика</h2>
+                <button onclick="loadProductStats()" class="success-btn">📈 Завантажити статистику товарів</button>
+                <div id="statsResult"></div>
+            </div>
+
+            <div id="adminResult" class="result"></div>
+        </div>
+    </div>
+
+    <!-- JavaScript файли -->
+    <script src="js/app.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/products.js"></script>
+    <script src="js/purchase.js"></script>
+    <script src="js/history.js"></script>
+    <script src="js/admin.js"></script>
+</body>
+</html> 
