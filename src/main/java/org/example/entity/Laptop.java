@@ -26,7 +26,7 @@ public class Laptop extends Product {
         this.diagonalSize = diagonalSize;
         this.weight = weight;
         this.cpuCoreCount = cpuCoreCount;
-        this.memoryCount = memoryCount;
+        setMemoryCount(memoryCount);
     }
 
     public Laptop(String name, float price, String firm, float maxDiscountPercentage, short diagonalSize, float weight, short cpuCoreCount, int memoryCount, String imageURL) {
@@ -34,7 +34,7 @@ public class Laptop extends Product {
         this.diagonalSize = diagonalSize;
         this.weight = weight;
         this.cpuCoreCount = cpuCoreCount;
-        this.memoryCount = memoryCount;
+        setMemoryCount(memoryCount);
     }
 
     // Геттеры и сеттеры
@@ -67,6 +67,17 @@ public class Laptop extends Product {
     }
 
     public void setMemoryCount(int memoryCount) {
-        this.memoryCount = memoryCount;
+        if (isPowerOfTwo(memoryCount)) {
+            this.memoryCount = memoryCount;
+        } else {
+            throw new IllegalArgumentException("Количество памяти должно быть степенью 2");
+        }
+    }
+
+    private boolean isPowerOfTwo(int n) {
+        if (n <= 0) {
+            return false;
+        }
+        return (n & (n - 1)) == 0;
     }
 }
