@@ -8,7 +8,7 @@ function calculatePriceModal() {
     }
 
     const customerId = currentUser.customerId || currentUser.id;
-    fetch(`${API_BASE}/purchases/calculate-price?customerId=${customerId}&productId=${selectedProductId}`)
+    fetch(`${API_BASE}/products/calculate-price?customerId=${customerId}&productId=${selectedProductId}`)
         .then(response => response.json())
         .then(data => {
             if (data.error) {

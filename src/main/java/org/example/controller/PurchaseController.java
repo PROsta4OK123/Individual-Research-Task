@@ -12,7 +12,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -23,113 +22,148 @@ import java.util.Optional;
 public class PurchaseController {
 
     private static final Logger log = LoggerFactory.getLogger(PurchaseController.class);
+
     @Autowired
     private PurchaseService purchaseService;
-
+    
     @Autowired
     private CustomerService customerService;
-
+    
     @Autowired
     private ProductService productService;
 
     @PostMapping
-    public ResponseEntity<Map<String, Object>> makePurchase(@RequestParam Long customerId, @RequestParam Long productId) {
-        Map<String, Object> response = new HashMap<>();
+    public ResponseEntity<Map<String, Object>> makePurchase(
+            @RequestParam Long customerId, 
+            @RequestParam Long productId) {
+        
+        log.info("Purchase request: customerId={}, productId={}", customerId, productId);
         
         try {
-            // Отримуємо дані до здійснення покупки
+            // Отримуємо інформацію до покупки
             Optional<Customer> customerOpt = customerService.getCustomerById(customerId);
             Optional<Product> productOpt = productService.getProductById(productId);
             
-            if (customerOpt.isEmpty() || productOpt.isEmpty()) {
-                response.put("success", false);
-                response.put("message", "Покупець або товар не знайдений");
-                log.error("Customer or product not found");
-                return ResponseEntity.badRequest().body(response);
+            if (customerOpt.isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "message", "Покупець не знайдений"
+                ));
             }
             
-            Customer customer = customerOpt.get();
+            if (productOpt.isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "message", "Товар не знайдений"
+                ));
+            }
+            
             Product product = productOpt.get();
+            Customer customerBefore = customerOpt.get();
             
-            // Розраховуємо ціну та знижку до покупки
-            double finalPrice = purchaseService.calculateFinalPrice(customer, product);
-            float appliedDiscount = purchaseService.calculateAppliedDiscount(customer, product);
+            // Розраховуємо ціну до покупки
+            double originalPrice = product.getPrice();
+            float customerDiscount = customerBefore.getIndividualDiscount();
+            float maxDiscount = product.getMaxDiscountPercentage();
+            float appliedDiscount = Math.min(customerDiscount, maxDiscount);
+            double finalPrice = originalPrice * (1 - appliedDiscount / 100.0);
             
-            // Здійснюємо покупку
             boolean success = purchaseService.makePurchase(customerId, productId);
             
             if (success) {
-                response.put("success", true);
-                response.put("message", "Покупка успішно здійснена");
-                response.put("productName", product.getName());
-                response.put("finalPrice", finalPrice);
-                response.put("appliedDiscount", appliedDiscount);
+                // Отримуємо оновлену інформацію про покупця
+                Customer customerAfter = customerService.getCustomerById(customerId).orElse(customerBefore);
                 
-                // Отримуємо оновлені дані покупця
-                Customer updatedCustomer = customerService.getCustomerById(customerId).get();
-                response.put("remainingMoney", updatedCustomer.getMoney());
-
-                log.info("Purchase made successfully");
-                return ResponseEntity.ok(response);
+                log.info("Purchase successful for customer {} and product {}", customerId, productId);
+                return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "message", "Покупка успішно завершена!",
+                    "productName", product.getName(),
+                    "productFirm", product.getFirm(),
+                    "originalPrice", originalPrice,
+                    "finalPrice", finalPrice,
+                    "appliedDiscount", appliedDiscount,
+                    "remainingMoney", customerAfter.getMoney()
+                ));
             } else {
-                response.put("success", false);
-                response.put("message", "Покупка не вдалася");
-                log.error("Purchase failed");
-                return ResponseEntity.badRequest().body(response);
+                log.warn("Purchase failed for customer {} and product {}", customerId, productId);
+                return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "message", "Покупка не вдалася"
+                ));
             }
-        } catch (RuntimeException e) {
-            response.put("success", false);
-            response.put("message", e.getMessage());
-            log.error("Purchase failed: " + e.getMessage());
-            return ResponseEntity.badRequest().body(response);
-        }
-    }
-
-    @GetMapping("/calculate-price")
-    public ResponseEntity<Map<String, Object>> calculatePrice(@RequestParam Long customerId, @RequestParam Long productId) {
-        Map<String, Object> response = new HashMap<>();
-        
-        try {
-            Optional<Customer> customer = customerService.getCustomerById(customerId);
-            Optional<Product> product = productService.getProductById(productId);
+        } catch (Exception e) {
+            log.error("Error processing purchase: customerId={}, productId={}, error={}", 
+                customerId, productId, e.getMessage());
             
-            if (customer.isPresent() && product.isPresent()) {
-                double finalPrice = purchaseService.calculateFinalPrice(customer.get(), product.get());
-                float appliedDiscount = purchaseService.calculateAppliedDiscount(customer.get(), product.get());
-                
-                response.put("originalPrice", product.get().getPrice());
-                response.put("finalPrice", finalPrice);
-                response.put("appliedDiscount", appliedDiscount);
-                response.put("canAfford", customer.get().getMoney() >= finalPrice);
-                
-                return ResponseEntity.ok(response);
-            } else {
-                response.put("error", "Покупець або товар не знайдений");
-                return ResponseEntity.notFound().build();
-            }
-        } catch (RuntimeException e) {
-            response.put("error", e.getMessage());
-            return ResponseEntity.badRequest().body(response);
+            return ResponseEntity.status(500).body(Map.of(
+                "success", false,
+                "message", e.getMessage()
+            ));
         }
     }
 
-    @GetMapping("/history")
-    public ResponseEntity<List<Purchase>> getPurchaseHistory(@RequestParam Long customerId) {
+    @PostMapping("/buy")
+    public ResponseEntity<Map<String, Object>> buyProduct(@RequestBody Map<String, Object> request) {
         try {
-            List<Purchase> history = purchaseService.getPurchaseHistory(customerId);
-            return ResponseEntity.ok(history);
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().build();
+            Long customerId = Long.valueOf(request.get("customerId").toString());
+            Long productId = Long.valueOf(request.get("productId").toString());
+            
+            log.info("Buy request: customerId={}, productId={}", customerId, productId);
+            
+            // Перенаправляємо на основний метод
+            return makePurchase(customerId, productId);
+            
+        } catch (Exception e) {
+            log.error("Error processing buy request: {}", e.getMessage());
+            
+            return ResponseEntity.status(500).body(Map.of(
+                "success", false,
+                "message", "Помилка сервера при обробці покупки: " + e.getMessage()
+            ));
         }
     }
 
-    @GetMapping("/statistics")
-    public ResponseEntity<Map<String, Object>> getPurchaseStatistics(@RequestParam Long customerId) {
+    @GetMapping("/history/{customerId}")
+    public ResponseEntity<Map<String, Object>> getPurchaseHistory(@PathVariable Long customerId) {
         try {
+            log.info("Getting purchase history for customer {}", customerId);
+            
+            List<Purchase> purchases = purchaseService.getPurchaseHistory(customerId);
+            
+            return ResponseEntity.ok(Map.of(
+                "success", true,
+                "purchases", purchases,
+                "count", purchases.size()
+            ));
+        } catch (Exception e) {
+            log.error("Error getting purchase history for customer {}: {}", customerId, e.getMessage());
+            
+            return ResponseEntity.status(500).body(Map.of(
+                "success", false,
+                "message", "Помилка отримання історії покупок: " + e.getMessage()
+            ));
+        }
+    }
+
+    @GetMapping("/statistics/{customerId}")
+    public ResponseEntity<Map<String, Object>> getPurchaseStatistics(@PathVariable Long customerId) {
+        try {
+            log.info("Getting purchase statistics for customer {}", customerId);
+            
             Map<String, Object> stats = purchaseService.getPurchaseStatistics(customerId);
-            return ResponseEntity.ok(stats);
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().build();
+            
+            return ResponseEntity.ok(Map.of(
+                "success", true,
+                "statistics", stats
+            ));
+        } catch (Exception e) {
+            log.error("Error getting purchase statistics for customer {}: {}", customerId, e.getMessage());
+            
+            return ResponseEntity.status(500).body(Map.of(
+                "success", false,
+                "message", "Помилка отримання статистики покупок: " + e.getMessage()
+            ));
         }
     }
 } 

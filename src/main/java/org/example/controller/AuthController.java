@@ -144,4 +144,68 @@ public class AuthController {
             return ResponseEntity.badRequest().body(response);
         }
     }
+
+    @PostMapping("/validate-token")
+    public ResponseEntity<Map<String, Object>> validateToken(
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
+        
+        String token = null;
+        
+        // Отримуємо токен з заголовка
+        if (authHeader != null) {
+            if (authHeader.startsWith("Bearer ")) {
+                token = authHeader.substring(7);
+            } else {
+                token = authHeader;
+            }
+        }
+
+        if (token == null) {
+            return ResponseEntity.badRequest().body(Map.of(
+                "success", false,
+                "message", "Токен не надано"
+            ));
+        }
+
+        Map<String, Object> response = authService.validateToken(token);
+        
+        if ((Boolean) response.get("success")) {
+            return ResponseEntity.ok(response);
+        } else {
+            return ResponseEntity.status(401).body(response);
+        }
+    }
+
+    @PostMapping("/refresh-token")
+    public ResponseEntity<Map<String, Object>> refreshToken(
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
+        
+        String token = null;
+        
+        // Отримуємо токен з заголовка
+        if (authHeader != null) {
+            if (authHeader.startsWith("Bearer ")) {
+                token = authHeader.substring(7);
+            } else {
+                token = authHeader;
+            }
+        }
+
+        if (token == null) {
+            return ResponseEntity.badRequest().body(Map.of(
+                "success", false,
+                "message", "Токен не надано"
+            ));
+        }
+
+        Map<String, Object> response = authService.refreshToken(token);
+        
+        if ((Boolean) response.get("success")) {
+            log.info("Token refreshed successfully for user");
+            return ResponseEntity.ok(response);
+        } else {
+            log.error("Failed to refresh token");
+            return ResponseEntity.status(401).body(response);
+        }
+    }
 } 

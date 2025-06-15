@@ -136,14 +136,12 @@ function logout() {
     localStorage.removeItem('authToken');
     localStorage.removeItem('currentUser');
     
-    // Ховаємо основну програму та показуємо авторизацію
-    document.getElementById('mainContainer').classList.add('hidden');
-    document.getElementById('authContainer').classList.remove('hidden');
+    // Показуємо форму авторизації
+    showAuthForm();
     
     // Очищуємо форми
     clearLoginForm();
     clearRegisterForm();
-    showLogin();
 }
 
 function clearLoginForm() {

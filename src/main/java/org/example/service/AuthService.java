@@ -186,7 +186,7 @@ public class AuthService {
         try {
             // Перевіряємо, що це гостьовий токен
             if (token != null && token.startsWith("guest_")) {
-                // Витягуємо ID покупця з токену
+                // Витягуємо ID покупця з токена
                 String customerIdStr = token.replace("guest_", "");
                 Long customerId = Long.parseLong(customerIdStr);
                 
@@ -238,8 +238,7 @@ public class AuthService {
             response.put("balance", customer.getMoney());
             response.put("discount", customer.getIndividualDiscount());
             
-            if (customer instanceof RegularCustomer) {
-                RegularCustomer regularCustomer = (RegularCustomer) customer;
+            if (customer instanceof RegularCustomer regularCustomer) {
                 response.put("totalPurchases", regularCustomer.getTotalPurchasesAmount());
                 response.put("customerType", "RegularCustomer");
             } else {
@@ -267,12 +266,147 @@ public class AuthService {
         userResponse.put("discount", customer.getIndividualDiscount());
         userResponse.put("totalPurchases", customer.getTotalPurchasesAmount());
         
-        if (user instanceof Admin) {
-            Admin admin = (Admin) user;
+        if (user instanceof Admin admin) {
             userResponse.put("adminLevel", admin.getAdminLevel());
             userResponse.put("permissions", admin.getPermissions());
         }
         
         return userResponse;
+    }
+
+    public Map<String, Object> validateToken(String token) {
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            // Перевіряємо гостьовий токен
+            if (token != null && token.startsWith("guest_")) {
+                String customerIdStr = token.replace("guest_", "");
+                Long customerId = Long.parseLong(customerIdStr);
+                
+                // Перевіряємо, чи існує гостьовий покупець
+                Optional<Customer> guestCustomer = customerService.getCustomerById(customerId);
+                if (guestCustomer.isPresent()) {
+                    response.put("success", true);
+                    response.put("message", "Гостьовий токен дійсний");
+                    response.put("tokenType", "GUEST");
+                } else {
+                    response.put("success", false);
+                    response.put("message", "Гостьовий акаунт не існує");
+                }
+                return response;
+            }
+            
+            // Перевіряємо JWT токен
+            if (!jwtUtils.validateJwtToken(token)) {
+                response.put("success", false);
+                response.put("message", "Токен недійсний або прострочений");
+                return response;
+            }
+            
+            // Якщо токен дійсний, отримуємо інформацію з нього
+            String username = jwtUtils.getUserNameFromJwtToken(token);
+            Long userId = jwtUtils.getUserIdFromJwtToken(token);
+            String role = jwtUtils.getRoleFromJwtToken(token);
+            
+            // Перевіряємо, чи існує користувач
+            Optional<User> userOpt = userRepository.findById(userId);
+            if (userOpt.isEmpty()) {
+                response.put("success", false);
+                response.put("message", "Користувач не знайдений");
+                return response;
+            }
+            
+            User user = userOpt.get();
+            if (!user.isActive()) {
+                response.put("success", false);
+                response.put("message", "Аккаунт деактивовано");
+                return response;
+            }
+            
+            response.put("success", true);
+            response.put("message", "Токен дійсний");
+            response.put("tokenType", "JWT");
+            response.put("username", username);
+            response.put("userId", userId);
+            response.put("role", role);
+            
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("message", "Помилка валідації токена: " + e.getMessage());
+        }
+        
+        return response;
+    }
+
+    public Map<String, Object> refreshToken(String token) {
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            // Перевіряємо гостьовий токен - для гостей оновлення не потрібне
+            if (token != null && token.startsWith("guest_")) {
+                response.put("success", false);
+                response.put("message", "Гостьові токени не потребують оновлення");
+                return response;
+            }
+            
+            // Перевіряємо JWT токен (навіть якщо він трохи прострочений)
+            String username = null;
+            Long userId = null;
+            String role = null;
+            
+            try {
+                username = jwtUtils.getUserNameFromJwtToken(token);
+                userId = jwtUtils.getUserIdFromJwtToken(token);
+                role = jwtUtils.getRoleFromJwtToken(token);
+            } catch (Exception e) {
+                // Якщо токен прострочений, але ще можна витягти дані
+                response.put("success", false);
+                response.put("message", "Токен занадто старий для оновлення");
+                return response;
+            }
+            
+            if (username == null || userId == null) {
+                response.put("success", false);
+                response.put("message", "Неможливо витягти дані з токена");
+                return response;
+            }
+            
+            // Перевіряємо, чи існує користувач
+            Optional<User> userOpt = userRepository.findById(userId);
+            if (userOpt.isEmpty()) {
+                response.put("success", false);
+                response.put("message", "Користувач не знайдений");
+                return response;
+            }
+            
+            User user = userOpt.get();
+            if (!user.isActive()) {
+                response.put("success", false);
+                response.put("message", "Аккаунт деактивовано");
+                return response;
+            }
+            
+            // Генеруємо новий токен
+            String newToken = jwtUtils.generateJwtToken(username, role, userId);
+            
+            // Отримуємо оновлену інформацію про користувача
+            RegularCustomer customer = findCustomerByUserId(userId);
+            if (customer == null) {
+                response.put("success", false);
+                response.put("message", "Дані покупця не знайдено");
+                return response;
+            }
+            
+            response.put("success", true);
+            response.put("message", "Токен успішно оновлено");
+            response.put("token", newToken);
+            response.put("user", createUserResponse(user, customer));
+            
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("message", "Помилка оновлення токена: " + e.getMessage());
+        }
+        
+        return response;
     }
 } 

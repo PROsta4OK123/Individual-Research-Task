@@ -8,10 +8,14 @@ function loadPurchaseHistory() {
     loadPurchaseStatistics(customerId);
     
     // Завантажуємо історію покупок
-    fetch(`${API_BASE}/purchases/history?customerId=${customerId}`)
+    fetch(`${API_BASE}/purchases/history/${customerId}`)
         .then(response => response.json())
-        .then(purchases => {
-            displayPurchaseHistory(purchases);
+        .then(data => {
+            if (data.success) {
+                displayPurchaseHistory(data.purchases);
+            } else {
+                throw new Error(data.message || 'Помилка завантаження історії');
+            }
         })
         .catch(error => {
             console.error('Помилка завантаження історії:', error);
@@ -26,10 +30,14 @@ function loadPurchaseHistory() {
 }
 
 function loadPurchaseStatistics(customerId) {
-    fetch(`${API_BASE}/purchases/statistics?customerId=${customerId}`)
+    fetch(`${API_BASE}/purchases/statistics/${customerId}`)
         .then(response => response.json())
-        .then(stats => {
-            displayPurchaseStatistics(stats);
+        .then(data => {
+            if (data.success) {
+                displayPurchaseStatistics(data.statistics);
+            } else {
+                console.error('Помилка завантаження статистики:', data.message);
+            }
         })
         .catch(error => {
             console.error('Помилка завантаження статистики:', error);

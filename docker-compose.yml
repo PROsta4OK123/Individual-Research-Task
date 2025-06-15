@@ -3,7 +3,7 @@ version: '3.8'
 services:
   voicemood-app:
     build: .
-    container_name: voicemood-container
+    container_name: market-container
     ports:
       - "8080:8080"
     environment:

@@ -5,15 +5,150 @@ let selectedProductId = null;
 
 // Ініціалізація при завантаженні
 window.onload = function() {
-    // Перевіряємо збережену аутентифікацію
+    checkAuthenticationStatus();
+};
+
+// Перевірка стану автентифікації
+function checkAuthenticationStatus() {
     const savedUser = localStorage.getItem('currentUser');
     const savedToken = localStorage.getItem('authToken');
     
     if (savedUser && savedToken) {
-        currentUser = JSON.parse(savedUser);
-        showMainApp();
+        // Перевіряємо валідність токена на сервері
+        fetch('/api/auth/validate-token', {
+            method: 'POST',
+            headers: { 
+                'Authorization': savedToken,
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                currentUser = JSON.parse(savedUser);
+                showMainApp();
+            } else {
+                // Токен недійсний, очищуємо дані
+                console.log('⚠️ Токен недійсний або прострочений');
+                showAuthResult('⏰ Ваша сесія прострочена. Будь ласка, увійдіть знову.', 'warning');
+                clearUserData();
+            }
+        })
+        .catch(error => {
+            console.error('❌ Помилка перевірки токена:', error);
+            showAuthResult('🔌 Помилка з\'єднання. Перевірте підключення до інтернету.', 'error');
+            clearUserData();
+        });
+    } else {
+        // Показуємо форму авторизації
+        showAuthForm();
     }
-};
+}
+
+// Функція для показу форми авторизації
+function showAuthForm() {
+    document.getElementById('authContainer').classList.remove('hidden');
+    document.getElementById('mainContainer').classList.add('hidden');
+    showLogin();
+}
+
+// Функція для очистки даних користувача
+function clearUserData() {
+    currentUser = null;
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('currentUser');
+    showAuthForm();
+}
+
+// Функція для перевірки часу життя токена
+function getTokenExpiryTime(token) {
+    if (!token || token.startsWith('guest_')) {
+        return null; // Гостьові токени не мають терміну дії
+    }
+    
+    try {
+        const base64Url = token.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+        
+        const payload = JSON.parse(jsonPayload);
+        return new Date(payload.exp * 1000);
+    } catch (error) {
+        console.error('Помилка аналізу токена:', error);
+        return null;
+    }
+}
+
+// Функція для автоматичного оновлення токена
+async function refreshTokenIfNeeded() {
+    const token = localStorage.getItem('authToken');
+    if (!token || !currentUser || token.startsWith('guest_')) {
+        return false;
+    }
+    
+    const expiryTime = getTokenExpiryTime(token);
+    if (!expiryTime) {
+        return false;
+    }
+    
+    const currentTime = new Date();
+    const timeLeft = expiryTime - currentTime;
+    const fifteenMinutes = 15 * 60 * 1000; // 15 хвилин в мілісекундах
+    
+    // Якщо до закінчення залишається менше 15 хвилин, оновлюємо токен
+    if (timeLeft < fifteenMinutes && timeLeft > 0) {
+        console.log('🔄 Автоматичне оновлення токена (залишилось:', Math.round(timeLeft / 1000 / 60), 'хвилин)');
+        
+        try {
+            const response = await fetch('/api/auth/refresh-token', {
+                method: 'POST',
+                headers: { 
+                    'Authorization': token,
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                // Оновлюємо збережені дані
+                localStorage.setItem('authToken', data.token);
+                localStorage.setItem('currentUser', JSON.stringify(data.user));
+                currentUser = data.user;
+                
+                console.log('✅ Токен успішно оновлено');
+                updateUserInfo(); // Оновлюємо відображення інформації користувача
+                
+                // Показуємо повідомлення користувачу (опціонально)
+                showResult('🔄 Сесію автоматично продовжено', 'success', 'shopping', 3000);
+                return true;
+            } else {
+                console.warn('⚠️ Не вдалося оновити токен:', data.message);
+                return false;
+            }
+        } catch (error) {
+            console.error('❌ Помилка оновлення токена:', error);
+            return false;
+        }
+    }
+    
+    return false;
+}
+
+// Періодична перевірка токена (кожні 2 хвилини)
+setInterval(async function() {
+    if (currentUser && localStorage.getItem('authToken')) {
+        // Спочатку намагаємося оновити токен якщо потрібно
+        const refreshed = await refreshTokenIfNeeded();
+        
+        // Якщо не оновили, перевіряємо статус
+        if (!refreshed) {
+            checkAuthenticationStatus();
+        }
+    }
+}, 2 * 60 * 1000); // 2 хвилини
 
 // Автоматична очистка гостьового акаунту при закритті вкладки
 window.addEventListener('beforeunload', function(event) {
@@ -127,6 +262,21 @@ function updateUserInfo() {
         ${roleIcon} ${currentUser.username} (${roleText})<br>
         <small style="font-size: 12px; opacity: 0.9;">${userInfo}</small>
     `;
+}
+
+// Функція для виконання API запитів з автоматичним оновленням токена
+async function makeAuthenticatedRequest(url, options = {}) {
+    // Перевіряємо та оновлюємо токен якщо потрібно
+    await refreshTokenIfNeeded();
+    
+    // Додаємо токен до заголовків
+    const token = localStorage.getItem('authToken');
+    if (token) {
+        options.headers = options.headers || {};
+        options.headers['Authorization'] = token;
+    }
+    
+    return fetch(url, options);
 }
 
 // === УТИЛІТАРНІ ФУНКЦІЇ ===

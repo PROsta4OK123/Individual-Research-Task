@@ -48,7 +48,7 @@ public class CustomerController {
             log.info("Updating customer with id " + id);
             return ResponseEntity.ok(customerService.saveCustomer(customer));
         }
-        log.info("Customer with id " + id + " not found");
+        log.info("Customer with id " + id + " not found to update");
         return ResponseEntity.notFound().build();
     }
 
@@ -59,7 +59,7 @@ public class CustomerController {
             log.info("Deleting customer with id " + id);
             return ResponseEntity.ok().build();
         }
-        log.info("Customer with id " + id + " not found");
+        log.info("Customer with id " + id + " not found to delete");
         return ResponseEntity.notFound().build();
     }
 
@@ -72,14 +72,14 @@ public class CustomerController {
     @GetMapping("/regular/name/{name}")
     public ResponseEntity<RegularCustomer> getRegularCustomerByName(@PathVariable String name) {
         Optional<RegularCustomer> customer = customerService.getRegularCustomerByName(name);
-        log.info("Getting regular customer with name " + name);
+        log.info("Getting regular customer with name {}", name);
         return customer.map(ResponseEntity::ok)
                       .orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping("/regular")
     public RegularCustomer createRegularCustomer(@RequestBody RegularCustomer customer) {
-        log.info("Creating regular customer with name " + customer.getFullName());
+        log.info("Creating regular customer with name {}", customer.getFullName());
         return customerService.saveRegularCustomer(customer);
     }
 
@@ -91,7 +91,7 @@ public class CustomerController {
 
     @GetMapping("/sufficient-money")
     public List<Customer> getCustomersWithSufficientMoney(@RequestParam double amount) {
-        log.info("Getting customers with sufficient money " + amount);
+        log.info("Getting customers with sufficient money {}", amount);
         return customerService.getCustomersWithSufficientMoney(amount);
     }
 } 

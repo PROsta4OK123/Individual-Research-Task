@@ -148,6 +148,12 @@ button:hover {
     color: #721c24;
 }
 
+.warning {
+    background-color: #fff3cd;
+    border: 2px solid #ffeaa7;
+    color: #856404;
+}
+
 .close-btn {
     position: absolute;
     top: 10px;
